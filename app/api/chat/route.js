@@ -7,10 +7,16 @@ export async function POST(req) {
     // Extract the user's message from the request body
     const { userMessage } = await req.json();
 
+    console.log('Received user message:', userMessage);
+
     // Set up Azure OpenAI with Bearer Token Provider
     const endpoint = process.env.ENDPOINT_URL || 'https://ai-supportbot.openai.azure.com/';
     const deployment = process.env.DEPLOYMENT_NAME || 'ai-customer-support';
     const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-05-01-preview';
+
+    console.log('Using endpoint:', endpoint);
+    console.log('Deployment name:', deployment);
+    console.log('API version:', apiVersion);
 
     const tokenProvider = getBearerTokenProvider(
       new DefaultAzureCredential(),
@@ -40,10 +46,11 @@ export async function POST(req) {
           frequency_penalty: 0,
           presence_penalty: 0,
         });
+        console.log('Received completion response:', completion);
         return completion;
       } catch (err) {
+        console.warn(`Error creating completion: ${err.message}. Retries left: ${retries}`);
         if (retries > 0) {
-          console.warn(`Retrying due to error: ${err.message}. Retries left: ${retries}`);
           await new Promise(res => setTimeout(res, 1000)); // wait 1 second before retrying
           return createCompletion(retries - 1);
         }
@@ -54,6 +61,7 @@ export async function POST(req) {
     const completion = await createCompletion();
     const responseMessage = completion.choices[0].message.content;
 
+    console.log('Final response message:', responseMessage);
     return NextResponse.json({ message: responseMessage });
   } catch (err) {
     console.error('The API route encountered an error:', err);
