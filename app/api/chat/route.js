@@ -23,24 +23,37 @@ export async function POST(req) {
       apiVersion: apiVersion,
     });
 
-    // Create completion request
-    const completion = await client.chat.completions.create({
-      model: deployment,
-      messages: [
-        {
-          role: 'user',
-          content: userMessage,
-        },
-      ],
-      max_tokens: 800,
-      temperature: 0.7,
-      top_p: 0.95,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-    });
+    // Create completion request with retry logic
+    const createCompletion = async (retries = 3) => {
+      try {
+        const completion = await client.chat.completions.create({
+          model: deployment,
+          messages: [
+            {
+              role: 'user',
+              content: userMessage,
+            },
+          ],
+          max_tokens: 800,
+          temperature: 0.7,
+          top_p: 0.95,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+        });
+        return completion;
+      } catch (err) {
+        if (retries > 0) {
+          console.warn(`Retrying due to error: ${err.message}. Retries left: ${retries}`);
+          await new Promise(res => setTimeout(res, 1000)); // wait 1 second before retrying
+          return createCompletion(retries - 1);
+        }
+        throw err;
+      }
+    };
 
-    // Return the response message as a JSON response
+    const completion = await createCompletion();
     const responseMessage = completion.choices[0].message.content;
+
     return NextResponse.json({ message: responseMessage });
   } catch (err) {
     console.error('The API route encountered an error:', err);
