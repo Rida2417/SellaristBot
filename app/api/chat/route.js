@@ -6,7 +6,6 @@ export async function POST(req) {
   try {
     // Extract the user's message from the request body
     const { userMessage } = await req.json();
-
     console.log('Received user message:', userMessage);
 
     // Set up Azure OpenAI with Bearer Token Provider
@@ -65,6 +64,7 @@ export async function POST(req) {
     return NextResponse.json({ message: responseMessage });
   } catch (err) {
     console.error('The API route encountered an error:', err);
+    console.error('Error details:', err.response ? err.response.data : err.message);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
   }
 }
